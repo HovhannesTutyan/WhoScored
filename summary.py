@@ -34,8 +34,8 @@ try:
             'manOfTheMatch': driver.find_element(By.XPATH, '//*[@id="player-table-statistics-body"]/tr[%s]/td[14]'%i).text.strip(),
             'rating': driver.find_element(By.XPATH, '//*[@id="player-table-statistics-body"]/tr[%s]/td[15]'%i).text.strip()
         })
-    print(data)
     df = pd.json_normalize(data)
+    print(df)
     df.to_csv('summary.csv', index=False)
 except Exception as X:
     print(X)
