@@ -34,4 +34,4 @@ for i in range (2):
         ax.text(j,i,cm[i,j], ha='center', va='center', color='red')
 plt.show()
 
-# Classification and Regression Trees is like a bunch of if ... else statements
+
