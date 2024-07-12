@@ -1,5 +1,6 @@
 import csv
 import json
+import math, random
 import pandas as pd
 from collections import Counter, defaultdict
 import dateutil.parser
@@ -71,3 +72,32 @@ print("max_change", max(all_changes, key=picker("change")))
 print("min_change", min(all_changes, key=picker("change")))
 
 
+##############################################
+###### Example 2 - Machine Learning Train ####
+##############################################
+
+# Split the data into Train and Test datas
+def split_data(data, prob):
+    '''Split data into fractions [prob, 1-prob]'''
+    results = [], []
+    for row in data:
+        results[0 if random.random() < prob else 1].append(row)
+    return results
+
+def train_test_split(x, y, test_pct):
+    data = list(zip(x, y))
+    train, test = split_data(data, 1-test_pct)
+    x_train, y_train = list(zip(*train)) # magical unzip trick
+    x_test, y_test = list(zip(*test))
+    return x_train, x_test, y_train, y_test
+
+xs = [x for x in range(1000)]
+ys = [2 * x for x in xs]
+x_train, x_test, y_train, y_test = train_test_split(xs, ys, 0.25)
+# assert len(x_train) == len(y_train) == 750
+print(len(x_train), len(y_train))
+print(len(x_test), len(y_test))
+
+print(x_train, x_test, y_train, y_test)
+
+    
