@@ -24,7 +24,7 @@ print(f"predictid response: \n {y_pred}")       #[ 5.77760476  8.012953   12.738
 
 
                               #################################
-                              ######## Example 1 ##############
+                              ######## Example 2 ##############
                               #################################
 # минуты = а + beta_1 * friends + beta_2 * work_hours + beta_з * grade + Е 
 def predict(x_i, beta):

@@ -5,7 +5,12 @@ Third step is to apply reducer to each collection of grouped values."""
 
 from functools import partial
 import math, random, re, datetime
+from collections import Counter, defaultdict
 
+def tokenize(message):
+    message = message.lower()
+    all_words = re.findall("[a-z0-9']+", message)
+    return set(all_words)
 def reduce_with(aggregation_fn, key, values):
     """reduces a key-values pair by applying aggregation_fn to the values"""
     yield (key, aggregation_fn(values))
@@ -13,7 +18,14 @@ def values_reducer(aggregation_fn):
     """turns a function (values -> output) into a reducer"""
     return partial(reduce_with, aggregation_fn)
 def map_reduce(inputs, mapper, reducer):
-    pass
+    """runs MapReduce on the inputs using mapper and reducer"""
+    collector = defaultdict(list)
+    for input in inputs:
+        for key, value in mapper(input):
+            collector[key].append(value)
+    return [output 
+            for key, values in collector.items() 
+            for output in reducer(key, values)]
 sum_reducer = values_reducer(sum)
 max_reducer = values_reducer(max)
 
@@ -96,3 +108,19 @@ def data_science_day_mapper(status_update):
         yield (day_of_week, 1)
 data_science_days = map_reduce(status_updates, data_science_day_mapper, sum_reducer)
 print(data_science_days)
+
+def words_per_user_mapper(status_update):
+    user = status_update["username"]
+    for word in tokenize(status_update["text"]):
+        yield(user, (word, 1))
+def most_popular_word_reducer(user, words_and_count):
+    """given a sequence of (word, count) paris, 
+    return the word with the highest total count"""
+    word_count = Counter()
+    for word, count in words_and_count:
+        word_count[word] += count
+    word, count = word_count.most_common(1)[0]
+    yield (user, (word, count))
+
+user_words = map_reduce(status_updates, words_per_user_mapper, most_popular_word_reducer)
+print(user_words)
