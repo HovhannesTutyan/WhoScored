@@ -101,3 +101,38 @@ print(len(x_test), len(y_test))
 print(x_train, x_test, y_train, y_test)
 
     
+                    ##############################################
+                    ###### Example 3 - Group data by tags     ####
+                    ##############################################
+
+l = [
+    {
+	  "name": "photo1.jpg",
+	  "tags": {'coffee', 'breakfast', 'drink', 'table', 'tableware', 'cup', 'food'}
+	 },
+	 {
+	  "name": "photo2.jpg",
+	  "tags": {'food', 'dish', 'meat', 'meal', 'tableware', 'dinner', 'vegetable'}
+	 },
+	 {
+	  "name": "photo3.jpg",
+	  "tags": {'city', 'skyline', 'cityscape', 'skyscraper', 'architecture', 'building', 'travel'}
+	 },
+	 {
+	  "name": "photo4.jpg",
+	  "tags": {'drink', 'juice', 'glass', 'meal', 'fruit', 'food', 'grapes'}
+	 }
+]
+
+def intersection(lst1, lst2):
+    return "-".join([value for value in lst1 if value in lst2])
+photo_groups = {}
+for i in range(1, len(l)):
+    for j in range(i+1, len(l)+1):
+        print(f"Intersection photo {i} with photo {j}")
+        """intersection() method is used to compare sets."""
+        lst = intersection(l[i-1]["tags"], l[j-1]["tags"])
+        if lst:
+            """setdefault() method is used to add items that not exist in dict (key,value)"""
+            k = photo_groups.setdefault(lst, list((l[i-1]["name"], l[j-1]["name"])))
+print(photo_groups)
