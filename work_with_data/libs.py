@@ -21,6 +21,14 @@ salary_bonus = base_salary + bonus
 """Find max for each employee by rows(1) or cols(0)"""
 np.amax(salary_bonus, axis=0)
 
+maya_salary = [2200, 2400, 2400]
+john_salary = [2500, 2700, 2700]
+
+base_salary1 = np.array([maya_salary, john_salary])
+
+base_salary_all = np.concatenate((base_salary, base_salary1), axis=0)
+print(base_salary_all)
+
 
                     ##############################################
                     ###############        Pandas    #############

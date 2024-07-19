@@ -30,3 +30,7 @@ import random
 a = [65, 41, 27]
 b = [52,35,18]
 print(a is b)
+
+
+
+
