@@ -3,6 +3,10 @@ import numpy as np
 import scipy.stats as stats
 import statsmodels.api as sm
 from matplotlib import pyplot as plt
+
+"""More info of support and resistance at https://www.investopedia.com/trading/support-and-resistance-basics/"""
+
+
 solana_data = [
     {
         "name": "Solana",
@@ -138,12 +142,15 @@ def volatility_calc(data, window=75):
 
 volatility_btc = volatility_calc(daily_change_btc['percentage_change'])
 volatility_sol = volatility_calc(daily_change_sol['percentage_change'])
-print('volatility_btc', volatility_btc, 'volatility_sol', volatility_sol)
 
 """Least-squares regression of returns. Considering the change in the volatility between two investments.."""
 
-x = daily_change_btc['percentage_change'].dropna()
-y = daily_change_sol['percentage_change'].dropna()
+x = daily_change_sol['percentage_change'].dropna()
+y = daily_change_btc['percentage_change'].dropna()
 X = sm.add_constant(x)
 model = sm.OLS(y, X).fit()
-print(model.summary())
+# print(model.summary())
+"""In this summary, you can interpret how the changes in Solanas returns (independent variable) relate to changes in Bitcoins 
+returns (dependent variable), taking into account the fit of the model and statistical significance."""
+
+
