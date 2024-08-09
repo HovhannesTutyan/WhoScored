@@ -39,7 +39,7 @@ def error(alfa, beta, x_i, y_i):
 def sum_of_squared_errors(alfa, beta, x, y):
     return sum(error(alpha, beta, x_i, y_i) ** 2 for x_i, y_i in zip(x, y))
 def least_squares_fit(x,y):
-    """given training values for x and y, find the least-squares values of alpha and beta"""
+    """given training values for x and y, find the least-squares values of alpha and beta, minimizing the sum of squares fo the vertical distance between the actual y values and predicted y values."""
     beta = correlation(x,y) * standard_deviation(y) / standard_deviation(x)
     alpha = mean(y) - beta * mean(x)
     return alpha, beta
