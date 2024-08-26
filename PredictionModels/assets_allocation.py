@@ -26,7 +26,7 @@ portfolio_weights = n_assets * [1 / n_assets]
 
 # calculate portfolio returns if the weight of assets is equal
 portfolio_returns = pd.Series(np.dot(portfolio_weights, returns.T), index=returns.index)
-
+print(f'If the weights of coins in the portfolio are equal, the returns of 25% each \n {returns} \n will be \n {portfolio_returns}')
 # calculate annualized average returns and the corresponding standard deviation
 avg_returns = returns.mean() * N_DAYS
 cov_mat = returns.cov() * N_DAYS
@@ -103,7 +103,7 @@ min_vol_ind = np.argmin(portf_results_df.volatility)
 min_vol_portf = portf_results_df.loc[min_vol_ind]
 
 print('Maximum Sharpe Ratio portfolio ----')
-print('Performance')
+print('\nPerformance')
 for index, value in max_sharpe_portf.items():
     print(f'{index}: {100 * value:.2f}% ', end="", flush=True)
 print('\nWeights')
@@ -111,7 +111,7 @@ for x, y in zip(RISKY_ASSETS, weights[np.argmax(portf_results_df.sharpe_ratio)])
     print(f'{x}: {100*y:.2f}% ', end="", flush=True)
 
 # Minimum volatility portfolio 
-print('Minimum Volatility portfolio ----')
+print('\nMinimum Volatility portfolio ----')
 print('Performance')
 for index, value in min_vol_portf.items():
     print(f'{index}: {100 * value:.2f}% ', end="", flush=True)
