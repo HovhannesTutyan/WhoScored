@@ -1,0 +1,31 @@
+from tkinter import *
+root = Tk()
+root.title("Tk example")
+root.maxsize(900, 600)
+root.config(bg="yellow")
+
+left_frame = Frame(root, width=200, height=200)
+left_frame.grid(row=0, column=0, padx=10, pady=5)
+Label(left_frame, text="Example Text").grid(row=1, column=0, padx=5, pady=5)
+tool_bar = Frame(left_frame, width=180, height=180, background='purple')
+tool_bar.grid(row=2, column=0, padx=5, pady=5)
+Label(tool_bar, text="Toolbar text").grid(row=3, column=0)
+Label(tool_bar, text="Select").grid(row=1, column=0, padx=5, pady=5)
+Label(tool_bar, text="Crop").grid(row=2, column=0, padx=5, pady=5)
+Label(tool_bar, text="Rotate & Flip").grid(row=3, column=0, padx=5, pady=5)
+Label(tool_bar, text="Resize").grid(row=4, column=0, padx=5, pady=5)
+Label(tool_bar, text="Exposure").grid(row=5, column=0, padx=5, pady=5)
+
+right_frame = Frame(root, width=200, height=200)
+right_frame.grid(row=1, column=0, padx=10, pady=5)
+tool_bar1 = Frame(right_frame, width=180, height=180, background='purple')
+tool_bar1.grid(row=2, column=0, padx=5, pady=5)
+Label(right_frame, text="Example Text").grid(row=1, column=0, padx=5, pady=5)
+
+down_frame = Frame(root, width=200, height=200)
+down_frame.grid(row=0, column=1, padx=10, pady=5)
+tool_bar1 = Frame(down_frame, width=180, height=380, background='purple')
+tool_bar1.grid(row=2, column=0, padx=5, pady=5)
+Label(down_frame, text="Example Text").grid(row=1, column=0, padx=5, pady=5)
+
+root.mainloop()
