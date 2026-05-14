@@ -1,0 +1,18 @@
+# Data science
+numpy
+pandas
+matplotlib
+seaborn
+scipy
+statsmodels
+scikit-learn
+
+# Finance / market data
+yfinance
+
+# Web scraping
+selenium
+webdriver-manager
+
+# HTTP
+requests

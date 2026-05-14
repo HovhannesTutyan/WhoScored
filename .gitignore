@@ -1,1 +1,22 @@
 env
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Debug artifacts
+debug_*.png
+debug_*.html
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
