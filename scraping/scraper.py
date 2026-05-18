@@ -30,6 +30,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 
+try:
+    from .config import IDs, Selectors, ColumnIndex, Timeouts, BASE_TEAM_URL
+except ImportError:
+    from config import IDs, Selectors, ColumnIndex, Timeouts, BASE_TEAM_URL
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
@@ -102,20 +107,12 @@ def _make_driver() -> webdriver.Chrome:
 
 # ── Cookie / consent wall ─────────────────────────────────────────────────────
 
-# Selectors tried in order to find and click a cookie-accept button.
-_CONSENT_SELECTORS = [
-    (By.ID,         "onetrust-accept-btn-handler"),
-    (By.ID,         "accept-choices"),
-    (By.XPATH,      "//button[contains(translate(text(),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'accept all')]"),
-    (By.XPATH,      "//button[contains(translate(text(),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'i agree')]"),
-    (By.XPATH,      "//button[contains(translate(text(),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'agree')]"),
-    (By.CSS_SELECTOR, ".qc-cmp2-summary-buttons button:last-child"),
-    (By.CSS_SELECTOR, "button.fc-cta-consent"),
-]
-
-def _dismiss_consent(driver: webdriver.Chrome, timeout: int = 10) -> bool:
+def _dismiss_consent(driver: webdriver.Chrome, timeout: int = None) -> bool:
     """Try every known consent-wall selector. Returns True if one was clicked."""
-    for by, selector in _CONSENT_SELECTORS:
+    if timeout is None:
+        timeout = Timeouts.CONSENT_BANNER
+    
+    for by, selector in Selectors.CONSENT_BUTTONS:
         try:
             btn = WebDriverWait(driver, timeout).until(
                 EC.element_to_be_clickable((by, selector))
@@ -141,8 +138,10 @@ def _cell_text(cell, xpath: str = None) -> str:
         return ""
 
 
-def _rows_loaded(driver: webdriver.Chrome, tbody_id: str, min_rows: int = 1) -> bool:
+def _rows_loaded(driver: webdriver.Chrome, tbody_id: str = None, min_rows: int = 1) -> bool:
     """Return True when tbody contains at least min_rows <tr> elements."""
+    if tbody_id is None:
+        tbody_id = IDs.STATS_TABLE_BODY
     try:
         tbody = driver.find_element(By.ID, tbody_id)
         return len(tbody.find_elements(By.TAG_NAME, "tr")) >= min_rows
@@ -150,9 +149,14 @@ def _rows_loaded(driver: webdriver.Chrome, tbody_id: str, min_rows: int = 1) -> 
         return False
 
 
-def _wait_for_rows(driver: webdriver.Chrome, tbody_id: str,
-                   timeout: int = 30, min_rows: int = 1) -> None:
+def _wait_for_rows(driver: webdriver.Chrome, tbody_id: str = None,
+                   timeout: int = None, min_rows: int = 1) -> None:
     """Block until the tbody has at least min_rows rows, or raise TimeoutException."""
+    if tbody_id is None:
+        tbody_id = IDs.STATS_TABLE_BODY
+    if timeout is None:
+        timeout = Timeouts.WAIT_DEFAULT
+    
     deadline = time.time() + timeout
     while time.time() < deadline:
         if _rows_loaded(driver, tbody_id, min_rows):
@@ -176,75 +180,40 @@ def _save_debug(driver: webdriver.Chrome, label: str) -> None:
 
 # ── Tab scrapers ──────────────────────────────────────────────────────────────
 
-# WhoScored Summary tab column layout (0-indexed td list):
-#  [0] name / age span / position span
-#  [1] shirt number  (skipped)
-#  [2] height
-#  [3] weight
-#  [4] appearances
-#  [5] minutes played
-#  [6] goals
-#  [7] assists
-#  [8] yellow cards
-#  [9] red cards
-# [10] shots per game
-# [11] pass success %
-# [12] aerial won per game
-# [13] man of the match
-# [14] rating
-
-# WhoScored Summary tab column layout (current, 0-indexed):
-#  [0] shirt number
-#  [1] name / age span / position span
-#  [2] height
-#  [3] weight
-#  [4] appearances
-#  [5] minutes played
-#  [6] goals
-#  [7] assists
-#  [8] yellow cards
-#  [9] red cards
-# [10] shots per game
-# [11] pass success %
-# [12] aerial won per game
-# [13] man of the match
-# [14] rating
-
 def _scrape_summary_tab(driver: webdriver.Chrome, debug: bool = False) -> list:
-    _wait_for_rows(driver, "player-table-statistics-body", timeout=30, min_rows=1)
-    tbody = driver.find_element(By.ID, "player-table-statistics-body")
+    _wait_for_rows(driver, timeout=30, min_rows=1)
+    tbody = driver.find_element(By.ID, IDs.STATS_TABLE_BODY)
     rows = tbody.find_elements(By.TAG_NAME, "tr")
     results = []
     for row in rows:
         cells = row.find_elements(By.TAG_NAME, "td")
         if len(cells) < 15:
             continue
-        # Name is inside the player-link anchor's iconize span (cells[0]).
-        # cells[0].text starts with the shirt-number div, so we target the span.
+        # Name is inside the first cell's iconize span
         try:
-            name = cells[0].find_element(By.CSS_SELECTOR, "span.iconize").text.strip()
+            name = cells[ColumnIndex.SUMMARY_NAME_AGE_POS].find_element(By.CSS_SELECTOR, Selectors.PLAYER_NAME).text.strip()
         except Exception:
             name = ""
         if not name:
             continue
-        position_raw = _cell_text(cells[0], "./span/span[2]")
+        position_raw = _cell_text(cells[ColumnIndex.SUMMARY_NAME_AGE_POS], "./span/span[2]")
         results.append({
             "name":                name,
-            "age":                 _cell_text(cells[0], "./span/span[1]"),
+            "age":                 _cell_text(cells[ColumnIndex.SUMMARY_NAME_AGE_POS], "./span/span[1]"),
             "position":            position_raw.lstrip(", "),
-            "height":              _cell_text(cells[2]),
-            "weight":              _cell_text(cells[3]),
-            "appearances":         _cell_text(cells[4]),
-            "min_played":          _cell_text(cells[5]),
-            "goals":               _cell_text(cells[6]),
-            "assists":             _cell_text(cells[7]),
-            "yellow_cards":        _cell_text(cells[8]),
-            "red_cards":           _cell_text(cells[9]),
-            "shots_per_game":      _cell_text(cells[10]),
-            "pass_success":        _cell_text(cells[11]),
-            "aerial_won_per_game": _cell_text(cells[12]),
-            "man_of_the_match":    _cell_text(cells[13]),
-            "rating":              _cell_text(cells[14]),
+            "height":              _cell_text(cells[ColumnIndex.SUMMARY_HEIGHT]),
+            "weight":              _cell_text(cells[ColumnIndex.SUMMARY_WEIGHT]),
+            "appearances":         _cell_text(cells[ColumnIndex.SUMMARY_APPEARANCES]),
+            "min_played":          _cell_text(cells[ColumnIndex.SUMMARY_MIN_PLAYED]),
+            "goals":               _cell_text(cells[ColumnIndex.SUMMARY_GOALS]),
+            "assists":             _cell_text(cells[ColumnIndex.SUMMARY_ASSISTS]),
+            "yellow_cards":        _cell_text(cells[ColumnIndex.SUMMARY_YELLOW_CARDS]),
+            "red_cards":           _cell_text(cells[ColumnIndex.SUMMARY_RED_CARDS]),
+            "shots_per_game":      _cell_text(cells[ColumnIndex.SUMMARY_SHOTS_PER_GAME]),
+            "pass_success":        _cell_text(cells[ColumnIndex.SUMMARY_PASS_SUCCESS]),
+            "aerial_won_per_game": _cell_text(cells[ColumnIndex.SUMMARY_AERIAL_WON_PER_GAME]),
+            "man_of_the_match":    _cell_text(cells[ColumnIndex.SUMMARY_MAN_OF_THE_MATCH]),
+            "rating":              _cell_text(cells[ColumnIndex.SUMMARY_RATING]),
         })
     log.info("Summary tab: %d players found", len(results))
     if debug and len(results) == 0:
@@ -252,33 +221,11 @@ def _scrape_summary_tab(driver: webdriver.Chrome, debug: bool = False) -> list:
     return results
 
 
-# WhoScored Defensive tab column layout (0-indexed td list):
-#  [0] name / age span / position span
-#  [1] shirt number  (skipped)
-#  [2] height        (skipped — already captured in summary)
-#  [3] weight        (skipped)
-#  [4] appearances   (skipped)
-#  [5] minutes played (skipped)
-#  [6] tackles
-#  [7] interceptions
-#  [8] fouls committed
-#  [9] offsides
-# [10] clearances
-# [11] dribbled past
-# [12] blocks
-# [13] own goals
-# [14] rating        (skipped — already captured in summary)
-
 def _scrape_defensive_tab(driver: webdriver.Chrome, wait: WebDriverWait,
                            debug: bool = False) -> list:
     # Try multiple selectors for the Defensive tab link
     tab = None
-    tab_selectors = [
-        (By.XPATH,       '//*[@id="team-squad-stats-options"]/li[2]/a'),
-        (By.CSS_SELECTOR, '#team-squad-stats-options li:nth-child(2) a'),
-        (By.XPATH,       '//ul[@id="team-squad-stats-options"]//a[contains(text(),"Defensive")]'),
-    ]
-    for by, sel in tab_selectors:
+    for by, sel in Selectors.DEFENSIVE_TAB:
         try:
             tab = wait.until(EC.element_to_be_clickable((by, sel)))
             log.info("Found defensive tab via: %s = %s", by, sel)
@@ -297,62 +244,46 @@ def _scrape_defensive_tab(driver: webdriver.Chrome, wait: WebDriverWait,
 
     # Scroll the tab into view and click
     driver.execute_script("arguments[0].scrollIntoView({block:'center'});", tab)
-    time.sleep(0.5)
+    time.sleep(Timeouts.TAB_CLICK)
     try:
         tab.click()
     except Exception:
         driver.execute_script("arguments[0].click();", tab)
 
     # Wait for defensive rows
-    _wait_for_rows(driver, "player-table-statistics-body", timeout=20, min_rows=1)
+    _wait_for_rows(driver, timeout=Timeouts.DEFENSIVE_TAB, min_rows=1)
     time.sleep(1)
 
     # The defensive table reuses the same tbody id; grab rows from the
     # visible container if it exists, otherwise fall back to the shared id.
     try:
-        container = driver.find_element(By.ID, "team-squad-stats-defensive")
-        tbody = container.find_element(By.ID, "player-table-statistics-body")
+        container = driver.find_element(By.ID, IDs.DEFENSIVE_STATS_CONTAINER)
+        tbody = container.find_element(By.ID, IDs.STATS_TABLE_BODY)
     except NoSuchElementException:
-        tbody = driver.find_element(By.ID, "player-table-statistics-body")
+        tbody = driver.find_element(By.ID, IDs.STATS_TABLE_BODY)
 
     rows = tbody.find_elements(By.TAG_NAME, "tr")
     results = []
-    # Defensive tab column layout (current, 0-indexed):
-    #  [0] shirt number
-    #  [1] name / age span / position span
-    #  [2] height  (skipped)
-    #  [3] weight  (skipped)
-    #  [4] appearances (skipped)
-    #  [5] min played  (skipped)
-    #  [6] tackles
-    #  [7] interceptions
-    #  [8] fouls committed
-    #  [9] offsides
-    # [10] clearances
-    # [11] dribbled past
-    # [12] blocks
-    # [13] own goals
-    # [14] rating (skipped — captured in summary)
     for row in rows:
         cells = row.find_elements(By.TAG_NAME, "td")
         if len(cells) < 14:
             continue
         try:
-            name = cells[0].find_element(By.CSS_SELECTOR, "span.iconize").text.strip()
+            name = cells[ColumnIndex.DEFENSIVE_NAME_AGE_POS].find_element(By.CSS_SELECTOR, Selectors.PLAYER_NAME).text.strip()
         except Exception:
             name = ""
         if not name:
             continue
         results.append({
             "name":          name,
-            "tackles":       _cell_text(cells[6]),
-            "interceptions": _cell_text(cells[7]),
-            "fouls":         _cell_text(cells[8]),
-            "offsides":      _cell_text(cells[9]),
-            "clearances":    _cell_text(cells[10]),
-            "dribbled_past": _cell_text(cells[11]),
-            "blocks":        _cell_text(cells[12]),
-            "own_goals":     _cell_text(cells[13]),
+            "tackles":       _cell_text(cells[ColumnIndex.DEFENSIVE_TACKLES]),
+            "interceptions": _cell_text(cells[ColumnIndex.DEFENSIVE_INTERCEPTIONS]),
+            "fouls":         _cell_text(cells[ColumnIndex.DEFENSIVE_FOULS]),
+            "offsides":      _cell_text(cells[ColumnIndex.DEFENSIVE_OFFSIDES]),
+            "clearances":    _cell_text(cells[ColumnIndex.DEFENSIVE_CLEARANCES]),
+            "dribbled_past": _cell_text(cells[ColumnIndex.DEFENSIVE_DRIBBLED_PAST]),
+            "blocks":        _cell_text(cells[ColumnIndex.DEFENSIVE_BLOCKS]),
+            "own_goals":     _cell_text(cells[ColumnIndex.DEFENSIVE_OWN_GOALS]),
         })
     log.info("Defensive tab: %d players found", len(results))
     if debug and len(results) == 0:
@@ -398,7 +329,7 @@ def scrape_team(
     Returns:
         Number of player rows upserted.
     """
-    url = f"https://www.whoscored.com/Teams/{team_id}/Show/{team_slug}"
+    url = BASE_TEAM_URL.format(team_id=team_id, team_slug=team_slug)
     scraped_at = datetime.now().strftime("%Y-%m-%d")
 
     conn = init_db(db_path)
@@ -406,14 +337,14 @@ def scrape_team(
     try:
         log.info("Opening %s", url)
         driver.get(url)
-        wait = WebDriverWait(driver, 30)
+        wait = WebDriverWait(driver, Timeouts.WAIT_DEFAULT)
 
         # Step 1: dismiss cookie / consent wall before anything else
-        _dismiss_consent(driver, timeout=12)
+        _dismiss_consent(driver)
 
         # Step 2: wait for the squad stats section to be present
         try:
-            wait.until(EC.presence_of_element_located((By.ID, "player-table-statistics-body")))
+            wait.until(EC.presence_of_element_located((By.ID, IDs.STATS_TABLE_BODY)))
         except TimeoutException:
             if debug:
                 _save_debug(driver, "no_stats_table")
@@ -424,11 +355,11 @@ def scrape_team(
 
         # Step 3: scroll to the table so lazy-loaded content renders
         try:
-            stats_section = driver.find_element(By.ID, "player-table-statistics-body")
+            stats_section = driver.find_element(By.ID, IDs.STATS_TABLE_BODY)
             driver.execute_script("arguments[0].scrollIntoView({block:'center'});", stats_section)
         except NoSuchElementException:
             pass
-        time.sleep(3)
+        time.sleep(Timeouts.TABLE_SCROLL)
 
         summary_rows = _scrape_summary_tab(driver, debug=debug)
 
