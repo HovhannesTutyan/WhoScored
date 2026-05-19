@@ -8,6 +8,30 @@ from selenium.webdriver.common.by import By
 
 BASE_TEAM_URL = "https://www.whoscored.com/Teams/{team_id}/Show/{team_slug}"
 
+# Teams scraped when running scraper.py without explicit team arguments.
+# Add or remove entries here to control the default batch.
+SCRAPE_TEAMS = [
+    {"team_id": 37, "team_slug": "Germany-Bayern-Munich", "team_name": "Bayern Munich"},
+    {"team_id": 65, "team_slug": "Spain-Barcelona", "team_name": "Barcelona"},
+    {"team_id": 167, "team_slug": "England-Manchester-City", "team_name": "Manchester City"},
+    {"team_id": 304, "team_slug": "France-Paris-Saint-Germain", "team_name": "Paris Saint-Germain"},
+    {"team_id": 52, "team_slug": "Spain-Real-Madrid", "team_name": "Real Madrid"},
+    {"team_id": 75, "team_slug": "Italy-Inter", "team_name": "Inter"},
+    {"team_id": 13, "team_slug": "England-Arsenal", "team_name": "Arsenal"},
+    {"team_id": 7614, "team_slug": "Germany-RB-Leipzig", "team_name": "RB Leipzig"},
+    {"team_id": 44, "team_slug": "Germany-Borussia-Dortmund", "team_name": "Borussia Dortmund"},
+    {"team_id": 32, "team_slug": "England-Manchester-United", "team_name": "Manchester United"},
+    {"team_id": 41, "team_slug": "Germany-VfB-Stuttgart", "team_name": "VfB Stuttgart"},
+    {"team_id": 1290, "team_slug": "Italy-Como", "team_name": "Como"},
+    {"team_id": 36, "team_slug": "Germany-Bayer-Leverkusen", "team_name": "Bayer Leverkusen"},
+    {"team_id": 26, "team_slug": "England-Liverpool", "team_name": "Liverpool"},
+    {"team_id": 84, "team_slug": "Italy-Roma", "team_name": "Roma"},
+    {"team_id": 1211, "team_slug": "Germany-Hoffenheim", "team_name": "Hoffenheim"},
+    {"team_id": 31, "team_slug": "England-Everton", "team_name": "Everton"},
+    {"team_id": 54, "team_slug": "Spain-Real-Betis", "team_name": "Real Betis"},
+    {"team_id": 63, "team_slug": "Spain-Atletico-Madrid", "team_name": "Atletico Madrid"},
+]
+
 # ── DOM Structure & Selectors ─────────────────────────────────────────────────
 
 class IDs:

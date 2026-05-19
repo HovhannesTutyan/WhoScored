@@ -31,9 +31,9 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 
 try:
-    from .config import IDs, Selectors, ColumnIndex, Timeouts, BASE_TEAM_URL
+    from .config import IDs, Selectors, ColumnIndex, Timeouts, BASE_TEAM_URL, SCRAPE_TEAMS
 except ImportError:
-    from config import IDs, Selectors, ColumnIndex, Timeouts, BASE_TEAM_URL
+    from config import IDs, Selectors, ColumnIndex, Timeouts, BASE_TEAM_URL, SCRAPE_TEAMS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -452,11 +452,35 @@ if __name__ == "__main__":
             team_name=args[2],
             debug=debug_flag,
         )
-    else:
-        # Default: Bayer Leverkusen
-        scrape_team(
-            team_id=36,
-            team_slug="Germany-Bayer-Leverkusen",
-            team_name="Bayer Leverkusen",
-            debug=debug_flag,
+    elif len(args) != 0:
+        raise SystemExit(
+            "Usage:\n"
+            "  python scraping/scraper.py\n"
+            "  python scraping/scraper.py <team_id> <team_slug> <team_name> [--debug]"
         )
+    else:
+        # Default batch from config.py
+        if not SCRAPE_TEAMS:
+            raise SystemExit("SCRAPE_TEAMS is empty in config.py")
+
+        total_rows = 0
+        failed_teams = []
+
+        for team in SCRAPE_TEAMS:
+            try:
+                rows = scrape_team(
+                    team_id=int(team["team_id"]),
+                    team_slug=team["team_slug"],
+                    team_name=team["team_name"],
+                    debug=debug_flag,
+                )
+                total_rows += rows
+            except Exception as exc:
+                failed_teams.append((team.get("team_name", "Unknown"), str(exc)))
+                log.exception("Failed scraping %s", team)
+
+        log.info("Batch scrape complete. Upserted %d rows across %d teams.", total_rows, len(SCRAPE_TEAMS))
+        if failed_teams:
+            log.error("%d team(s) failed during scraping:", len(failed_teams))
+            for team_name, error_msg in failed_teams:
+                log.error(" - %s: %s", team_name, error_msg)
