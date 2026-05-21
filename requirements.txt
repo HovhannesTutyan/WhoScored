@@ -13,6 +13,9 @@ yfinance
 # Web scraping
 selenium
 webdriver-manager
+undetected-chromedriver
+beautifulsoup4
+lxml
 
 # HTTP
 requests

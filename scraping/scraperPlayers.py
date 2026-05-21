@@ -15,6 +15,7 @@ Usage (import):
 """
 
 import os
+import re
 import sys
 import time
 import logging
@@ -35,10 +36,51 @@ try:
 except ImportError:
     from config import IDs, Selectors, ColumnIndex, Timeouts, BASE_TEAM_URL, SCRAPE_TEAMS
 
+try:
+    from .team_recent_form_config import TEAM_NAME_ALIASES as _TEAM_NAME_ALIASES
+except ImportError:
+    try:
+        from team_recent_form_config import TEAM_NAME_ALIASES as _TEAM_NAME_ALIASES
+    except ImportError:
+        _TEAM_NAME_ALIASES = {}
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-DB_PATH = "players.db"
+DB_PATH = "team_recent_form.db"
+
+
+# ── Team normalisation (FK resolution against the teams table) ────────────────
+
+def _normalize_team_name(name: str) -> str:
+    if not name:
+        return ""
+    n = name.lower().strip()
+    n = n.replace(".", " ").replace("-", " ").replace("'", "")
+    n = re.sub(r"\s+", " ", n)
+    alias = _TEAM_NAME_ALIASES.get(n)
+    if alias:
+        n = alias
+    n = re.sub(r"\b(fc|cf|ac|sc|afc|cfc|u\.?s\.?|s\.s\.c\.)\b", "", n)
+    n = re.sub(r"\s+", " ", n).strip()
+    return n
+
+
+def _resolve_team_id(conn: sqlite3.Connection, team_name: str):
+    """Return teams.id matching team_name (exact then substring), or None."""
+    try:
+        rows = conn.execute("SELECT id, team_name FROM teams").fetchall()
+    except sqlite3.OperationalError:
+        return None
+    norm = _normalize_team_name(team_name)
+    for tid, tname in rows:
+        if _normalize_team_name(tname) == norm:
+            return tid
+    for tid, tname in rows:
+        tn = _normalize_team_name(tname)
+        if norm and tn and (norm in tn or tn in norm):
+            return tid
+    return None
 
 # ── Database ──────────────────────────────────────────────────────────────────
 
@@ -50,6 +92,7 @@ def init_db(db_path: str = DB_PATH) -> sqlite3.Connection:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS players (
                 id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                team_id             INTEGER REFERENCES teams(id),
                 team_name           TEXT    NOT NULL,
                 team_url            TEXT    NOT NULL,
                 scraped_at          TEXT    NOT NULL,
@@ -333,6 +376,11 @@ def scrape_team(
     scraped_at = datetime.now().strftime("%Y-%m-%d")
 
     conn = init_db(db_path)
+    team_id = _resolve_team_id(conn, team_name)
+    if team_id is not None:
+        log.info("Resolved team_id=%d for '%s'", team_id, team_name)
+    else:
+        log.info("No teams table entry for '%s' — team_id will be NULL", team_name)
     driver = _make_driver()
     try:
         log.info("Opening %s", url)
@@ -381,6 +429,7 @@ def scrape_team(
         for s in summary_rows:
             d = defensive_map.get(s["name"], {})
             records.append((
+                team_id,
                 team_name,
                 url,
                 scraped_at,
@@ -412,7 +461,7 @@ def scrape_team(
 
         sql = """
             INSERT OR REPLACE INTO players (
-                team_name, team_url, scraped_at,
+                team_id, team_name, team_url, scraped_at,
                 name, age, position, height, weight,
                 appearances, min_played, goals, assists,
                 yellow_cards, red_cards, shots_per_game, pass_success,
@@ -420,7 +469,7 @@ def scrape_team(
                 tackles, interceptions, fouls, offsides,
                 clearances, dribbled_past, blocks, own_goals,
                 rating
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """
         with conn:
             conn.executemany(sql, records)
