@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "Qjy1Qbr07t_FJe00O6sFY"
+uri = "file://artifacts/football-stats/assets/images/icon.png"
+type = "image"
+title = "generated_image"

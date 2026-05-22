@@ -1,0 +1,32 @@
+const colors = {
+  light: {
+    text: "#0a0a0a",
+    tint: "#00C853",
+    background: "#0D0F14",
+    foreground: "#F0F2F5",
+    card: "#161B26",
+    cardForeground: "#F0F2F5",
+    primary: "#00E676",
+    primaryForeground: "#001A0A",
+    secondary: "#1A2035",
+    secondaryForeground: "#B0B8CC",
+    muted: "#1A2035",
+    mutedForeground: "#7A8599",
+    accent: "#2979FF",
+    accentForeground: "#ffffff",
+    destructive: "#FF3D57",
+    destructiveForeground: "#ffffff",
+    border: "#222C42",
+    input: "#222C42",
+    premierLeague: "#380082",
+    laLiga: "#FF4500",
+    statGreen: "#00E676",
+    statBlue: "#2979FF",
+    statOrange: "#FF9100",
+    statRed: "#FF3D57",
+    gold: "#FFD600",
+  },
+  radius: 12,
+};
+
+export default colors;
